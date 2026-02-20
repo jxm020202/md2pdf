@@ -318,8 +318,20 @@ def guess_style(f):
     return "resume" if ("resume" in n or "cv" in n) else "notes" if ("note" in n or "study" in n or "learn" in n) else "doc"
 
 
+def preprocess_md(text):
+    """Fix common markdown issues that trip up the parser."""
+    lines = text.split('\n')
+    result = []
+    for i, line in enumerate(lines):
+        # Insert blank line before table headers (line starts with | and has |---|)
+        if line.strip().startswith('|') and i > 0 and result and result[-1].strip() and not result[-1].strip().startswith('|'):
+            result.append('')
+        result.append(line)
+    return '\n'.join(result)
+
+
 def build_html_pdf(md_path, out_path, style):
-    md_text = md_path.read_text()
+    md_text = preprocess_md(md_path.read_text())
     html_body = markdown.markdown(md_text, extensions=["tables", "smarty", "fenced_code"])
     html = f"<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>{html_body}</body></html>"
     weasyprint.HTML(string=html).write_pdf(str(out_path), stylesheets=[weasyprint.CSS(string=STYLES[style])])
